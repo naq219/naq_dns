@@ -25,6 +25,16 @@
         android:name=".PersonalDNSFilterApp">
 
         <activity
+            android:name=".LoginActivity"
+            android:exported="true"
+            android:label="Login">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
             android:name=".dnsserverconfig.DNSServerConfigActivity"
             android:theme="@style/Theme.phttpp.TitleBar.DNSConfig"
             android:exported="false"
@@ -35,12 +45,7 @@
             android:name=".DNSProxyActivity"
             android:label="personalDNSfilter"
             android:windowSoftInputMode="adjustPan"
-            android:exported = "true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
+            android:exported = "false">
         </activity>
 
         <service
