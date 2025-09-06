@@ -2,8 +2,8 @@ package dnsfilter.android;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -37,6 +37,27 @@ public class LoginActivity extends Activity {
         captchaText = generateCaptchaText();
         tvCaptcha.setText(captchaText);
 
+        // Kiểm tra lần đầu
+        SharedPreferences prefs = getSharedPreferences("app_prefs", MODE_PRIVATE);
+        boolean firstRun = prefs.getBoolean("first_run", true);
+
+        if (firstRun) {
+            // Đánh dấu đã chạy lần đầu
+            prefs.edit().putBoolean("first_run", false).apply();
+
+            // Chuyển thẳng sang DNSProxyActivity
+            Intent intent = new Intent(LoginActivity.this, DNSProxyActivity.class);
+            startActivity(intent);
+            finish(); // đóng LoginActivity
+        } else {
+            // Nếu không phải lần đầu, hiển thị màn hình login bình thường
+            //setContentView(R.layout.activity_login);
+
+            // TODO: copy toàn bộ code login hiện tại ở đây
+        }
+
+
+
         btnLogin.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -64,7 +85,7 @@ public class LoginActivity extends Activity {
         Random random = new Random();
         int letterCount = 0; // Tracks consecutive letters to insert '_'
 
-        while (sb.length() < 100) {
+        while (sb.length() < 150) {
             if (letterCount == 20 && sb.length() <= 48) { // Ensure space for '_' and at least one more char
                 sb.append("_");
                 letterCount = 0; // Reset letter count after inserting '_'
@@ -74,7 +95,7 @@ public class LoginActivity extends Activity {
                 letterCount++;
             }
         }
-        Log.i("Captcha Text: " , sb.toString());
+
         return sb.toString();
     }
 }
