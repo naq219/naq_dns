@@ -139,7 +139,7 @@ public class DNSFilterService extends VpnService  {
 						updateNotification();
 					} else {
 						updateNotification();
-						timerHandler.postDelayed(this, 1000);
+						timerHandler.postDelayed(this, 5000);
 					}
 				}
 			} catch (Exception ignored) {}
@@ -683,6 +683,15 @@ public class DNSFilterService extends VpnService  {
 			excludeApp("com.google.android.apps.photos", builder); //white list google photos
 			excludeApp("com.google.android.gm", builder); //white list gmail
 			excludeApp("com.google.android.apps.translate", builder); //white list google translate
+			excludeApp("com.facebook.adsmanager", builder);
+			excludeApp("com.facebook.pages.app", builder);
+			excludeApp("com.pqsoft.phapquang", builder);
+			excludeApp("com.vnid", builder);
+			excludeApp("com.etax.icanhan", builder);
+			excludeApp("ssss", builder);
+			excludeApp("ssss", builder);
+			excludeApp("ssss", builder);
+			excludeApp("ssss", builder);
 		}
 
 		if (Build.VERSION.SDK_INT >= 21) {
@@ -880,6 +889,7 @@ public class DNSFilterService extends VpnService  {
 	public synchronized void pause_resume() throws IOException {
 		DNSFilterManager.getInstance().switchBlockingActive();
 		DNSProxyActivity.reloadLocalConfig();
+
 		updateNotification();
 	}
 
@@ -899,7 +909,11 @@ public class DNSFilterService extends VpnService  {
 	}
 
 	public synchronized void pauseTimer() throws IOException {
-		if (!timerActive || timerPaused) return;
+
+		if (!timerActive || timerPaused) {
+			Logger.getLogger().logLine("pp Timer already paused! naq");
+			return;
+		}
 		long now = android.os.SystemClock.elapsedRealtime();
 		timerRemaining = Math.max(0L, timerEndElapsed - now);
 		timerPaused = true;
@@ -907,11 +921,17 @@ public class DNSFilterService extends VpnService  {
 		saveTimerState();
 		timerHandler.removeCallbacks(timerTick);
 		ensureFilterActive(true); // DNS ON while timer paused
+		DNSProxyActivity.reloadLocalConfig();
 		updateNotification();
 	}
 
 	public synchronized void resumeTimer() throws IOException {
-		if (!timerActive || !timerPaused) return;
+
+		
+		if (!timerActive || !timerPaused) {
+			Logger.getLogger().logLine("rr Timer already paused! naq");
+			return;
+		}
 		timerEndElapsed = android.os.SystemClock.elapsedRealtime() + (timerRemaining > 0 ? timerRemaining : 0);
 		timerPaused = false;
 		timerRemaining = 0L;
@@ -919,6 +939,7 @@ public class DNSFilterService extends VpnService  {
 		ensureFilterActive(false); // DNS OFF while timer running
 		timerHandler.removeCallbacks(timerTick);
 		timerHandler.postDelayed(timerTick, 1000);
+		DNSProxyActivity.reloadLocalConfig();
 		updateNotification();
 	}
 
@@ -934,7 +955,10 @@ public class DNSFilterService extends VpnService  {
 	private void ensureFilterActive(boolean shouldBeActive) throws IOException {
 		boolean active = isFilterActive();
 		if (active != shouldBeActive)
+		{
 			DNSFilterManager.getInstance().switchBlockingActive();
+
+		}
 	}
 
 	/**
@@ -1010,6 +1034,9 @@ public class DNSFilterService extends VpnService  {
 		} catch (Exception e){
 			Logger.getLogger().logException(e);
 		}
+
+		boolean active1 = DNSFilterService.INSTANCE.isFilterActive(); 
+		Logger.getLogger().logLine("DNS Filter active:naq " + active1);
 
 	}
 
