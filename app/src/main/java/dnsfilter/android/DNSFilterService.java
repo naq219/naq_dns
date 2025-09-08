@@ -709,6 +709,29 @@ public class DNSFilterService extends VpnService  {
 		INSTANCE = this;
 		SERVICE = intent;
 
+		// Fast-path: handle actions from notification/receivers off the main thread
+		if (intent != null && intent.getAction() != null) {
+			final String action = intent.getAction();
+			final long duration = intent.getLongExtra("duration", 0L);
+			new Thread(new Runnable() {
+				@Override public void run() {
+					try {
+						if (ACTION_PAUSE_FOR.equals(action)) {
+							pauseFor(duration);
+						} else if (ACTION_TIMER_PAUSE.equals(action)) {
+							pauseTimer();
+						} else if (ACTION_TIMER_RESUME.equals(action)) {
+							resumeTimer();
+						} else if ("pause_resume".equals(action)) {
+							pause_resume();
+						}
+					} catch (Exception e) {
+						Logger.getLogger().logException(e);
+					}
+				}
+			}).start();
+		}
+
 		if (DNSFILTER != null) {
 			Logger.getLogger().logLine("DNS filter already running!");
 		} else {
@@ -854,13 +877,13 @@ public class DNSFilterService extends VpnService  {
 	}
 
 
-	public void pause_resume() throws IOException {
+	public synchronized void pause_resume() throws IOException {
 		DNSFilterManager.getInstance().switchBlockingActive();
 		DNSProxyActivity.reloadLocalConfig();
 		updateNotification();
 	}
 
-	public void pauseFor(long durationMillis) throws IOException {
+	public synchronized void pauseFor(long durationMillis) throws IOException {
 		if (durationMillis <= 0) return;
 		long now = android.os.SystemClock.elapsedRealtime();
 		timerActive = true;
@@ -875,7 +898,7 @@ public class DNSFilterService extends VpnService  {
 		updateNotification();
 	}
 
-	public void pauseTimer() throws IOException {
+	public synchronized void pauseTimer() throws IOException {
 		if (!timerActive || timerPaused) return;
 		long now = android.os.SystemClock.elapsedRealtime();
 		timerRemaining = Math.max(0L, timerEndElapsed - now);
@@ -887,7 +910,7 @@ public class DNSFilterService extends VpnService  {
 		updateNotification();
 	}
 
-	public void resumeTimer() throws IOException {
+	public synchronized void resumeTimer() throws IOException {
 		if (!timerActive || !timerPaused) return;
 		timerEndElapsed = android.os.SystemClock.elapsedRealtime() + (timerRemaining > 0 ? timerRemaining : 0);
 		timerPaused = false;

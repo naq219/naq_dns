@@ -46,20 +46,16 @@ public class NotificationReceiver extends BroadcastReceiver {
 				Logger.getLogger().message("Not permitted - Passcode protected!");
 				return;
 			}
-			DNSFilterService instance = DNSFilterService.INSTANCE;
-			if (instance != null) {
-				String action = intent.getAction();
-				if ("pause_for".equals(action)) {
-					long duration = intent.getLongExtra("duration", 0L);
-					instance.pauseFor(duration);
-				} else if ("timer_pause".equals(action)) {
-					instance.pauseTimer();
-				} else if ("timer_resume".equals(action)) {
-					instance.resumeTimer();
-				} else {
-					instance.pause_resume();
-				}
-			}
+            String action = intent.getAction();
+            Intent svc = new Intent(context, DNSFilterService.class);
+            svc.setAction(action);
+            if ("pause_for".equals(action)) {
+                svc.putExtra("duration", intent.getLongExtra("duration", 0L));
+            }
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O)
+                context.startForegroundService(svc);
+            else
+                context.startService(svc);
 		} catch (Exception e) {
 			Logger.getLogger().logException(e);
 		}
