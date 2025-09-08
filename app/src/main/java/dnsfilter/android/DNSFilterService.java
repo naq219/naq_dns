@@ -756,7 +756,9 @@ public class DNSFilterService extends VpnService  {
 				if (android.os.Build.VERSION.SDK_INT >= 26)
 					notibuilder = new Notification.Builder(this, getChannel());
 				else
-					notibuilder = new Notification.Builder(this);
+					notibuilder = new
+
+							Notification.Builder(this);
 
 				Intent pause_resume = new Intent();
 				pause_resume.setAction("pause_resume");
@@ -765,9 +767,9 @@ public class DNSFilterService extends VpnService  {
 				notibuilder
 						.setContentTitle(getResources().getString(R.string.notificationActive))
 						.setSmallIcon(R.drawable.icon)
-						.setContentIntent(pendingIntent)
+						//.setContentIntent(pendingIntent)
 						//.setContentIntent(pause_resume_Intent)
-						.addAction(0, getResources().getString(R.string.switch_pause_resume), pause_resume_Intent)
+						//.addAction(0, getResources().getString(R.string.switch_pause_resume), pause_resume_Intent)
 						.build();
 
 				updateNotification();
