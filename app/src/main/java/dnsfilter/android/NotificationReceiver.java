@@ -48,11 +48,20 @@ public class NotificationReceiver extends BroadcastReceiver {
 			}
 			DNSFilterService instance = DNSFilterService.INSTANCE;
 			if (instance != null) {
-				instance.pause_resume();
+				String action = intent.getAction();
+				if ("pause_for".equals(action)) {
+					long duration = intent.getLongExtra("duration", 0L);
+					instance.pauseFor(duration);
+				} else if ("timer_pause".equals(action)) {
+					instance.pauseTimer();
+				} else if ("timer_resume".equals(action)) {
+					instance.resumeTimer();
+				} else {
+					instance.pause_resume();
+				}
 			}
 		} catch (Exception e) {
 			Logger.getLogger().logException(e);
 		}
 	}
 }
-

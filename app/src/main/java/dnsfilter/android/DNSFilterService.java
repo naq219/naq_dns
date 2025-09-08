@@ -109,6 +109,43 @@ public class DNSFilterService extends VpnService  {
 	private int mtu;
 	Notification.Builder notibuilder;
 
+	// Timed pause state (elapsedRealtime-based to resist time changes)
+	private static final String ACTION_PAUSE_FOR = "pause_for";
+	private static final String ACTION_TIMER_PAUSE = "timer_pause";
+	private static final String ACTION_TIMER_RESUME = "timer_resume";
+	private static final String PREFS_NAME = "app_prefs";
+	private static final String PREF_TIMER_ACTIVE = "timer_active";
+	private static final String PREF_TIMER_PAUSED = "timer_paused";
+	private static final String PREF_TIMER_END_ELAPSED = "timer_end_elapsed";
+	private static final String PREF_TIMER_REMAINING = "timer_remaining";
+
+	private boolean timerActive = false;
+	private boolean timerPaused = false;
+	private long timerEndElapsed = 0L;
+	private long timerRemaining = 0L;
+	private final android.os.Handler timerHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+	private final java.lang.Runnable timerTick = new java.lang.Runnable() {
+		@Override
+		public void run() {
+			try {
+				if (timerActive && !timerPaused) {
+					long now = android.os.SystemClock.elapsedRealtime();
+					long remaining = Math.max(0L, timerEndElapsed - now);
+					if (remaining <= 0) {
+						// time over -> resume DNS and clear timer
+						try { ensureFilterActive(true); } catch (Exception ignored) {}
+						timerActive = false; timerPaused = false; timerEndElapsed = 0L; timerRemaining = 0L;
+						saveTimerState();
+						updateNotification();
+					} else {
+						updateNotification();
+						timerHandler.postDelayed(this, 1000);
+					}
+				}
+			} catch (Exception ignored) {}
+		}
+	};
+
 	protected static class DNSReqForwarder {
 		//used in case vpn mode is disabled for forwaring dns requests to local dns proxy
 
@@ -697,10 +734,16 @@ public class DNSFilterService extends VpnService  {
 
 				registerReceiver(ConnectionChangeReceiver.getInstance(), new IntentFilter("android.net.conn.CONNECTIVITY_CHANGE"));
 
+				// Register notification actions
+				IntentFilter actions = new IntentFilter();
+				actions.addAction("pause_resume");
+				actions.addAction(ACTION_PAUSE_FOR);
+				actions.addAction(ACTION_TIMER_PAUSE);
+				actions.addAction(ACTION_TIMER_RESUME);
 				if (android.os.Build.VERSION.SDK_INT < 34)
-					registerReceiver(NotificationReceiver.getInstance(), new IntentFilter("pause_resume"));
+					registerReceiver(NotificationReceiver.getInstance(), actions);
 				else
-					registerReceiver(NotificationReceiver.getInstance(), new IntentFilter("pause_resume"),RECEIVER_EXPORTED);
+					registerReceiver(NotificationReceiver.getInstance(), actions, RECEIVER_EXPORTED);
 
 				possibleNetworkChange(true); // in order to trigger dns detection
 
@@ -767,10 +810,32 @@ public class DNSFilterService extends VpnService  {
 				notibuilder
 						.setContentTitle(getResources().getString(R.string.notificationActive))
 						.setSmallIcon(R.drawable.icon)
-						//.setContentIntent(pendingIntent)
-						//.setContentIntent(pause_resume_Intent)
-						//.addAction(0, getResources().getString(R.string.switch_pause_resume), pause_resume_Intent)
 						.build();
+
+				// Restore timer state
+				android.content.SharedPreferences sp = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+				timerActive = sp.getBoolean(PREF_TIMER_ACTIVE, false);
+				timerPaused = sp.getBoolean(PREF_TIMER_PAUSED, false);
+				timerEndElapsed = sp.getLong(PREF_TIMER_END_ELAPSED, 0L);
+				timerRemaining = sp.getLong(PREF_TIMER_REMAINING, 0L);
+				if (timerActive) {
+					if (timerPaused) {
+						// ensure DNS ON while paused
+						try { ensureFilterActive(true); } catch (Exception ignored) {}
+					} else {
+						// ensure DNS OFF while running
+						try { ensureFilterActive(false); } catch (Exception ignored) {}
+						long now = android.os.SystemClock.elapsedRealtime();
+						if (timerEndElapsed <= now) {
+							// expired already
+							timerActive = false; timerPaused = false; timerEndElapsed = 0L; timerRemaining = 0L;
+							saveTimerState();
+						} else {
+							// schedule tick
+							timerHandler.postDelayed(timerTick, 1000);
+						}
+					}
+				}
 
 				updateNotification();
 
@@ -795,6 +860,60 @@ public class DNSFilterService extends VpnService  {
 		updateNotification();
 	}
 
+	public void pauseFor(long durationMillis) throws IOException {
+		if (durationMillis <= 0) return;
+		long now = android.os.SystemClock.elapsedRealtime();
+		timerActive = true;
+		timerPaused = false;
+		timerRemaining = 0L;
+		timerEndElapsed = now + durationMillis;
+		saveTimerState();
+		ensureFilterActive(false); // DNS OFF during timed pause
+		timerHandler.removeCallbacks(timerTick);
+		timerHandler.postDelayed(timerTick, 1000);
+		DNSProxyActivity.reloadLocalConfig();
+		updateNotification();
+	}
+
+	public void pauseTimer() throws IOException {
+		if (!timerActive || timerPaused) return;
+		long now = android.os.SystemClock.elapsedRealtime();
+		timerRemaining = Math.max(0L, timerEndElapsed - now);
+		timerPaused = true;
+		timerEndElapsed = 0L;
+		saveTimerState();
+		timerHandler.removeCallbacks(timerTick);
+		ensureFilterActive(true); // DNS ON while timer paused
+		updateNotification();
+	}
+
+	public void resumeTimer() throws IOException {
+		if (!timerActive || !timerPaused) return;
+		timerEndElapsed = android.os.SystemClock.elapsedRealtime() + (timerRemaining > 0 ? timerRemaining : 0);
+		timerPaused = false;
+		timerRemaining = 0L;
+		saveTimerState();
+		ensureFilterActive(false); // DNS OFF while timer running
+		timerHandler.removeCallbacks(timerTick);
+		timerHandler.postDelayed(timerTick, 1000);
+		updateNotification();
+	}
+
+	private void saveTimerState() {
+		android.content.SharedPreferences.Editor ed = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit();
+		ed.putBoolean(PREF_TIMER_ACTIVE, timerActive);
+		ed.putBoolean(PREF_TIMER_PAUSED, timerPaused);
+		ed.putLong(PREF_TIMER_END_ELAPSED, timerEndElapsed);
+		ed.putLong(PREF_TIMER_REMAINING, timerRemaining);
+		ed.apply();
+	}
+
+	private void ensureFilterActive(boolean shouldBeActive) throws IOException {
+		boolean active = isFilterActive();
+		if (active != shouldBeActive)
+			DNSFilterManager.getInstance().switchBlockingActive();
+	}
+
 	/**
 	 * Check if DNS filtering is currently active
 	 * 
@@ -815,19 +934,51 @@ public class DNSFilterService extends VpnService  {
 		if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN)
 			return;
 		try {
-			boolean active = Boolean.parseBoolean(DNSFILTER.getConfig().getProperty("filterActive", "true"));
-			String txt = getResources().getString(R.string.notificationActive);
-			if (!active)
-				txt = getResources().getString(R.string.notificationPaused);
+			boolean dnsOn = Boolean.parseBoolean(DNSFILTER.getConfig().getProperty("filterActive", "true"));
+			Notification.Builder builder = (android.os.Build.VERSION.SDK_INT >= 26)
+					? new Notification.Builder(this, getChannel())
+					: new Notification.Builder(this);
 
-			notibuilder.setContentTitle(txt);
-			if (active)
-				notibuilder.setSmallIcon(R.drawable.icon);
-			else
-				notibuilder.setSmallIcon(R.drawable.icon_disabled);
+			String title = dnsOn ? getResources().getString(R.string.notificationActive)
+					: getResources().getString(R.string.notificationPaused);
+			builder.setContentTitle(title);
+			builder.setSmallIcon(dnsOn ? R.drawable.icon : R.drawable.icon_disabled);
+			builder.setContentIntent(pendingIntent);
+
+			// Content text with remaining time if timer active
+			if (timerActive) {
+				long rem;
+				if (timerPaused) rem = Math.max(0L, timerRemaining);
+				else rem = Math.max(0L, timerEndElapsed - android.os.SystemClock.elapsedRealtime());
+				CharSequence remTxt = android.text.format.DateUtils.formatElapsedTime(rem / 1000);
+				builder.setContentText("Remaining: " + remTxt);
+			}
+
+			// Actions
+			if (timerActive) {
+				if (timerPaused) {
+					Intent resume = new Intent(ACTION_TIMER_RESUME);
+					android.app.PendingIntent pi = android.app.PendingIntent.getBroadcast(this, 22346, resume, android.app.PendingIntent.FLAG_UPDATE_CURRENT+android.app.PendingIntent.FLAG_IMMUTABLE);
+					builder.addAction(0, "Tiếp tục", pi);
+				} else {
+					Intent pause = new Intent(ACTION_TIMER_PAUSE);
+					android.app.PendingIntent pi = android.app.PendingIntent.getBroadcast(this, 22345, pause, android.app.PendingIntent.FLAG_UPDATE_CURRENT+android.app.PendingIntent.FLAG_IMMUTABLE);
+					builder.addAction(0, "Tạm dừng", pi);
+				}
+			} else {
+				// Quick actions when no timer running
+				Intent p30 = new Intent(ACTION_PAUSE_FOR);
+				p30.putExtra("duration", 30L*60L*1000L);
+				android.app.PendingIntent pi30 = android.app.PendingIntent.getBroadcast(this, 22347, p30, android.app.PendingIntent.FLAG_UPDATE_CURRENT+android.app.PendingIntent.FLAG_IMMUTABLE);
+				Intent p1d = new Intent(ACTION_PAUSE_FOR);
+				p1d.putExtra("duration", 24L*60L*60L*1000L);
+				android.app.PendingIntent pi1d = android.app.PendingIntent.getBroadcast(this, 22348, p1d, android.app.PendingIntent.FLAG_UPDATE_CURRENT+android.app.PendingIntent.FLAG_IMMUTABLE);
+				builder.addAction(0, "Pause 30m", pi30);
+				builder.addAction(0, "Pause 1d", pi1d);
+			}
 
 			((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).cancel(1);
-			((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).notify(1,notibuilder.build());
+			((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).notify(1, builder.build());
 
 			// Update the quick settings tile
 			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)

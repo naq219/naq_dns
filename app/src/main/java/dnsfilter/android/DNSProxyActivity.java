@@ -46,6 +46,7 @@ import android.text.Spanned;
 import android.text.TextWatcher;
 import android.text.method.LinkMovementMethod;
 import android.transition.TransitionManager;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.ActionMode;
 import android.view.KeyEvent;
@@ -63,6 +64,7 @@ import android.widget.EditText;
 import android.widget.ScrollView;
 import android.widget.TableLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -1110,7 +1112,8 @@ public class DNSProxyActivity extends Activity
 
 	@Override
 	public void onClick(View destination) {
-
+		Toast.makeText(this, "Copied to clipboard! "+destination.toString(), Toast.LENGTH_SHORT).show();
+		Log.i("DEBUG", "Copied to clipboard! "+destination.toString());
 		if (switchingConfig) {
 			advancedConfigCheck.setChecked(false);
 			Logger.getLogger().logLine("Config switch in progress - Wait!");
@@ -1862,7 +1865,6 @@ public class DNSProxyActivity extends Activity
 	}
 
 	public void onCopyFilterFromLogView(boolean filter) {
-
 		String selection = getSelectedText(false);
 
 		//close menu

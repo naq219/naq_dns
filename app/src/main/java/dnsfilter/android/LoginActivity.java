@@ -23,12 +23,14 @@ public class LoginActivity extends Activity {
     private TextView tvCaptcha;
     private EditText etInput;
     private Button btnLogin;
+    private Button btnPause30m;
+    private Button btnPause1d;
     private String captchaText;
 
     private static final String PREFS_NAME = "app_prefs";
     private static final String PREF_FIRST_RUN = "first_run";
     private static final String PREF_LOGIN_SUCCESS_COUNT = "login_success_count";
-    private static final int REQUIRED_SUCCESSFUL_LOGINS = 30;
+    private static final int REQUIRED_SUCCESSFUL_LOGINS = -1;
     int currentSuccessCount =0;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,6 +40,8 @@ public class LoginActivity extends Activity {
         tvCaptcha = findViewById(R.id.tvCaptcha);
         etInput = findViewById(R.id.etInput);
         btnLogin = findViewById(R.id.btnLogin);
+        btnPause30m = findViewById(R.id.btnPause30m);
+        btnPause1d = findViewById(R.id.btnPause1d);
 
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         boolean firstRun = prefs.getBoolean(PREF_FIRST_RUN, true);
@@ -85,6 +89,38 @@ public class LoginActivity extends Activity {
                     tvCaptcha.setText(captchaText);
                     etInput.setText(""); // Clear input
                 }
+            }
+        });
+
+        // Pause for 30 minutes
+        btnPause30m.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                long duration = 30L * 60L * 1000L;
+                // Persist intent in prefs so service can restore after restart
+                long until = System.currentTimeMillis() + duration;
+                getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putLong("pause_until", until).apply();
+                // Notify running service via broadcast
+                Intent i = new Intent("pause_for");
+                i.putExtra("duration", duration);
+                sendBroadcast(i);
+                Toast.makeText(LoginActivity.this, "Paused for 30 minutes", Toast.LENGTH_SHORT).show();
+                //navigateToDNSProxyActivity();
+            }
+        });
+
+        // Pause for 1 day
+        btnPause1d.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                long duration = 24L * 60L * 60L * 1000L;
+                long until = System.currentTimeMillis() + duration;
+                getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putLong("pause_until", until).apply();
+                Intent i = new Intent("pause_for");
+                i.putExtra("duration", duration);
+                sendBroadcast(i);
+                Toast.makeText(LoginActivity.this, "Paused for 1 day", Toast.LENGTH_SHORT).show();
+                navigateToDNSProxyActivity();
             }
         });
     }
