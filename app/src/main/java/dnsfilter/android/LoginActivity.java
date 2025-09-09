@@ -30,6 +30,7 @@ public class LoginActivity extends Activity {
     private static final String PREFS_NAME = "app_prefs";
     private static final String PREF_FIRST_RUN = "first_run";
     private static final String PREF_LOGIN_SUCCESS_COUNT = "login_success_count";
+    private static final String PREF_30M_LAST_DAY = "throttle_30m_last_day"; // yyyymmdd last used day
     private static final int REQUIRED_SUCCESSFUL_LOGINS = 50;
     int currentSuccessCount =0;
     @Override
@@ -44,6 +45,11 @@ public class LoginActivity extends Activity {
         btnLogin = findViewById(R.id.btnLogin);
         btnPause30m = findViewById(R.id.btnPause30m);
         btnPause1d = findViewById(R.id.btnPause1d);
+
+        // Disable 30m button if already used today
+        SharedPreferences prefsForBtn = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        boolean canUse30m = canUse30mToday(prefsForBtn);
+        //btnPause30m.setEnabled(canUse30m);
 
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         boolean firstRun = prefs.getBoolean(PREF_FIRST_RUN, true);
@@ -98,15 +104,28 @@ public class LoginActivity extends Activity {
         btnPause30m.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                SharedPreferences sp = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+                if (!canUse30mToday(sp)) {
+                    long ms = millisUntilTomorrow();
+                    long hours = ms / (60L * 60L * 1000L);
+                    long minutes = (ms / (60L * 1000L)) % 60L;
+                    String msg = String.format("Bạn đã dùng 30 phút hôm nay. Vui lòng thử lại sau %d giờ %d phút.", hours, minutes);
+                    Toast.makeText(LoginActivity.this, msg, Toast.LENGTH_LONG).show();
+                    return;
+                }
+
                 long duration = 30L * 60L * 1000L;
-                // Persist intent in prefs so service can restore after restart
-                long until = System.currentTimeMillis() + duration;
-                getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putLong("pause_until", until).apply();
+                // Mark used today
+                sp.edit().putInt(PREF_30M_LAST_DAY, localDayKey()).apply();
+
                 // Notify running service via broadcast
                 Intent i = new Intent("pause_for");
                 i.putExtra("duration", duration);
                 sendBroadcast(i);
-                Toast.makeText(LoginActivity.this, "Paused for 30 minutes", Toast.LENGTH_SHORT).show();
+                Toast.makeText(LoginActivity.this, "Đã tạm dừng DNS 30 phút", Toast.LENGTH_SHORT).show();
+
+                // Update UI state
+                btnPause30m.setEnabled(false);
                 //navigateToDNSProxyActivity();
             }
         });
@@ -148,5 +167,30 @@ public class LoginActivity extends Activity {
             }
         }
         return sb.toString();
+    }
+
+    // ---- Helpers for daily throttle (local day reset at 00:00) ----
+    private int localDayKey() {
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        int y = cal.get(java.util.Calendar.YEAR);
+        int m = cal.get(java.util.Calendar.MONTH) + 1; // 1..12
+        int d = cal.get(java.util.Calendar.DAY_OF_MONTH);
+        return y * 10000 + m * 100 + d; // yyyymmdd
+    }
+
+    private boolean canUse30mToday(SharedPreferences sp) {
+        int last = sp.getInt(PREF_30M_LAST_DAY, -1);
+        return last != localDayKey();
+    }
+
+    private long millisUntilTomorrow() {
+        java.util.Calendar now = java.util.Calendar.getInstance();
+        java.util.Calendar tomorrow = (java.util.Calendar) now.clone();
+        tomorrow.add(java.util.Calendar.DAY_OF_YEAR, 1);
+        tomorrow.set(java.util.Calendar.HOUR_OF_DAY, 0);
+        tomorrow.set(java.util.Calendar.MINUTE, 0);
+        tomorrow.set(java.util.Calendar.SECOND, 0);
+        tomorrow.set(java.util.Calendar.MILLISECOND, 0);
+        return tomorrow.getTimeInMillis() - System.currentTimeMillis();
     }
 }

@@ -1026,15 +1026,7 @@ public class DNSFilterService extends VpnService  {
 					builder.addAction(0, "Tạm dừng", pi);
 				}
 			} else {
-				// Quick actions when no timer running
-				Intent p30 = new Intent(ACTION_PAUSE_FOR);
-				p30.putExtra("duration", 30L*60L*1000L);
-				android.app.PendingIntent pi30 = android.app.PendingIntent.getBroadcast(this, 22347, p30, android.app.PendingIntent.FLAG_UPDATE_CURRENT+android.app.PendingIntent.FLAG_IMMUTABLE);
-				Intent p1d = new Intent(ACTION_PAUSE_FOR);
-				p1d.putExtra("duration", 24L*60L*60L*1000L);
-				android.app.PendingIntent pi1d = android.app.PendingIntent.getBroadcast(this, 22348, p1d, android.app.PendingIntent.FLAG_UPDATE_CURRENT+android.app.PendingIntent.FLAG_IMMUTABLE);
-				builder.addAction(0, "Pause 30m", pi30);
-				builder.addAction(0, "Pause 1d", pi1d);
+				// No quick actions requested by user when no timer is running
 			}
 
 			((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).cancel(1);
