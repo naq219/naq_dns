@@ -37,6 +37,8 @@ import android.net.Uri;
 import android.net.VpnService;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.StrictMode;
 import android.text.Editable;
 import android.text.Html;
@@ -598,6 +600,28 @@ public class DNSProxyActivity extends Activity
 			dump(e);
 			throw new RuntimeException(e);
 		}
+
+		Intent intent = getIntent();
+		if (intent != null && intent.hasExtra("update_thoi")) { // kiểm tra có dữ liệu
+			boolean updateThoi = intent.getBooleanExtra("update_thoi", false);
+			if (updateThoi) {
+				// Thực hiện hành động tương ứng
+				AlertDialog dialog = new AlertDialog.Builder(this)
+						.setTitle("Thông báo")
+						.setMessage("Cập nhật DNS thành công")
+						.setCancelable(false) // không cho user đóng
+						.create();
+
+				dialog.show();
+
+				// Đóng dialog và Activity sau 6 giây (6000 ms)
+				new Handler(Looper.getMainLooper()).postDelayed(() -> {
+					dialog.dismiss();
+					finish(); // đóng Activity
+				}, 6000);
+			}
+		}
+
 	}
 
 	@Override
@@ -1112,7 +1136,6 @@ public class DNSProxyActivity extends Activity
 
 	@Override
 	public void onClick(View destination) {
-		Toast.makeText(this, "Copied to clipboard! "+destination.toString(), Toast.LENGTH_SHORT).show();
 		Log.i("DEBUG", "Copied to clipboard! "+destination.toString());
 		if (switchingConfig) {
 			advancedConfigCheck.setChecked(false);

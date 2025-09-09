@@ -923,6 +923,13 @@ public class DNSFilterService extends VpnService  {
 		ensureFilterActive(true); // DNS ON while timer paused
 		DNSProxyActivity.reloadLocalConfig();
 		updateNotification();
+
+//		Intent activityIntent = new Intent(this, DNSProxyActivity.class);
+//		activityIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); // Bắt buộc từ Service
+//		activityIntent.putExtra("update_thoi", true);
+//		startActivity(activityIntent);
+
+
 	}
 
 	public synchronized void resumeTimer() throws IOException {
@@ -941,6 +948,12 @@ public class DNSFilterService extends VpnService  {
 		timerHandler.postDelayed(timerTick, 1000);
 		DNSProxyActivity.reloadLocalConfig();
 		updateNotification();
+
+//		Intent activityIntent = new Intent(this, DNSProxyActivity.class);
+//		activityIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); // Bắt buộc từ Service
+//		activityIntent.putExtra("update_thoi", true);
+//		startActivity(activityIntent);
+
 	}
 
 	private void saveTimerState() {

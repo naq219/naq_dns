@@ -739,8 +739,8 @@ public class DNSFilterManager extends ConfigurationAccess  {
 									}
 								}
 
-								con.setConnectTimeout(120000);
-								con.setReadTimeout(120000);
+								con.setConnectTimeout(15000);
+								con.setReadTimeout(15000);
 								con.setRequestProperty("Accept-Encoding", "gzip, deflate, identity");
 								con.setRequestProperty("User-Agent", "Mozilla/5.0 (" + System.getProperty("os.name") + "; " + System.getProperty("os.version") + ")");
 
@@ -803,7 +803,7 @@ public class DNSFilterManager extends ConfigurationAccess  {
 						Logger.getLogger().message(msg);
 						Logger.getLogger().logLine(msg);
 						out.close();
-						throw eio;
+						//throw eio;
 					}
 
 				}

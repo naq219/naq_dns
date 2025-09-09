@@ -30,7 +30,7 @@ public class LoginActivity extends Activity {
     private static final String PREFS_NAME = "app_prefs";
     private static final String PREF_FIRST_RUN = "first_run";
     private static final String PREF_LOGIN_SUCCESS_COUNT = "login_success_count";
-    private static final int REQUIRED_SUCCESSFUL_LOGINS = -1;
+    private static final int REQUIRED_SUCCESSFUL_LOGINS = 50;
     int currentSuccessCount =0;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,6 +38,8 @@ public class LoginActivity extends Activity {
         setContentView(R.layout.activity_login);
 
         tvCaptcha = findViewById(R.id.tvCaptcha);
+        tvCaptcha.setLongClickable(false);
+        tvCaptcha.setTextIsSelectable(false);
         etInput = findViewById(R.id.etInput);
         btnLogin = findViewById(R.id.btnLogin);
         btnPause30m = findViewById(R.id.btnPause30m);
@@ -113,14 +115,14 @@ public class LoginActivity extends Activity {
         btnPause1d.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                long duration = 24L * 60L * 60L * 1000L;
-                long until = System.currentTimeMillis() + duration;
-                getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putLong("pause_until", until).apply();
-                Intent i = new Intent("pause_for");
-                i.putExtra("duration", duration);
-                sendBroadcast(i);
-                Toast.makeText(LoginActivity.this, "Paused for 1 day", Toast.LENGTH_SHORT).show();
-                navigateToDNSProxyActivity();
+//                long duration = 24L * 60L * 60L * 1000L;
+//                long until = System.currentTimeMillis() + duration;
+//                getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putLong("pause_until", until).apply();
+//                Intent i = new Intent("pause_for");
+//                i.putExtra("duration", duration);
+//                sendBroadcast(i);
+//                Toast.makeText(LoginActivity.this, "Paused for 1 day", Toast.LENGTH_SHORT).show();
+                //navigateToDNSProxyActivity();
             }
         });
     }
