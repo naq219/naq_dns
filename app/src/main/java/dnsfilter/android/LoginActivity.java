@@ -23,6 +23,7 @@ public class LoginActivity extends Activity {
     private TextView tvCaptcha;
     private EditText etInput;
     private Button btnLogin;
+    private Button btnShowLog;
     private Button btnPause30m;
     private Button btnPause1d;
     private String captchaText;
@@ -43,6 +44,7 @@ public class LoginActivity extends Activity {
         tvCaptcha.setTextIsSelectable(false);
         etInput = findViewById(R.id.etInput);
         btnLogin = findViewById(R.id.btnLogin);
+        btnShowLog = findViewById(R.id.btnShowLog);
         btnPause30m = findViewById(R.id.btnPause30m);
         btnPause1d = findViewById(R.id.btnPause1d);
 
@@ -97,6 +99,16 @@ public class LoginActivity extends Activity {
                     tvCaptcha.setText(captchaText);
                     etInput.setText(""); // Clear input
                 }
+            }
+        });
+
+        // Show Log only
+        btnShowLog.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(LoginActivity.this, DNSProxyActivity.class);
+                intent.putExtra("show_log_only", true);
+                startActivity(intent);
             }
         });
 

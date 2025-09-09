@@ -602,23 +602,48 @@ public class DNSProxyActivity extends Activity
 		}
 
 		Intent intent = getIntent();
-		if (intent != null && intent.hasExtra("update_thoi")) { // kiểm tra có dữ liệu
-			boolean updateThoi = intent.getBooleanExtra("update_thoi", false);
-			if (updateThoi) {
-				// Thực hiện hành động tương ứng
-				AlertDialog dialog = new AlertDialog.Builder(this)
-						.setTitle("Thông báo")
-						.setMessage("Cập nhật DNS thành công")
-						.setCancelable(false) // không cho user đóng
-						.create();
+		if (intent != null) {
+			// If launched in log-only mode, hide most controls and show only logs/basic info
+			if (intent.getBooleanExtra("show_log_only", false)) {
+				try {
+					int[] toHide = new int[]{
+							R.id.advSettingsScroll,
+							R.id.filtercfgview,
+							R.id.enableAddFilter,
+							R.id.enableAutoStart,
+							R.id.linearLayout2, // start/stop/reload buttons row
+							R.id.addHostsScroll,
+							R.id.manuallyEditScroll,
+							R.id.appWhiteListScroll,
+							R.id.backupRestoreView,
+							R.id.copyfromlog,
+							R.id.relLayout2 // advanced toggle + help/remote buttons
+					};
+					for (int id : toHide) {
+						View v = findViewById(id);
+						if (v != null) v.setVisibility(View.GONE);
+					}
+				} catch (Exception ignored) {}
+			}
 
-				dialog.show();
+			if (intent.hasExtra("update_thoi")) { // kiểm tra có dữ liệu
+				boolean updateThoi = intent.getBooleanExtra("update_thoi", false);
+				if (updateThoi) {
+					// Thực hiện hành động tương ứng
+					AlertDialog dialog = new AlertDialog.Builder(this)
+							.setTitle("Thông báo")
+							.setMessage("Cập nhật DNS thành công")
+							.setCancelable(false) // không cho user đóng
+							.create();
 
-				// Đóng dialog và Activity sau 6 giây (6000 ms)
-				new Handler(Looper.getMainLooper()).postDelayed(() -> {
-					dialog.dismiss();
-					finish(); // đóng Activity
-				}, 6000);
+					dialog.show();
+
+					// Đóng dialog và Activity sau 6 giây (6000 ms)
+					new Handler(Looper.getMainLooper()).postDelayed(() -> {
+						dialog.dismiss();
+						finish(); // đóng Activity
+					}, 6000);
+				}
 			}
 		}
 
