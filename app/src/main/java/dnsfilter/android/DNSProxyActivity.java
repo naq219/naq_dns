@@ -611,7 +611,7 @@ public class DNSProxyActivity extends Activity
 							R.id.filtercfgview,
 							R.id.enableAddFilter,
 							R.id.enableAutoStart,
-							R.id.linearLayout2, // start/stop/reload buttons row
+
 							R.id.addHostsScroll,
 							R.id.manuallyEditScroll,
 							R.id.appWhiteListScroll,

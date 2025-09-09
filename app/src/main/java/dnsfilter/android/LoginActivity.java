@@ -32,7 +32,7 @@ public class LoginActivity extends Activity {
     private static final String PREF_FIRST_RUN = "first_run";
     private static final String PREF_LOGIN_SUCCESS_COUNT = "login_success_count";
     private static final String PREF_30M_LAST_DAY = "throttle_30m_last_day"; // yyyymmdd last used day
-    private static final int REQUIRED_SUCCESSFUL_LOGINS = 0;
+    private static final int REQUIRED_SUCCESSFUL_LOGINS = 30;
     int currentSuccessCount =0;
     @Override
     protected void onCreate(Bundle savedInstanceState) {

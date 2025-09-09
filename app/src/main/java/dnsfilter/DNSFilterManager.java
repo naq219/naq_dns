@@ -801,9 +801,10 @@ public class DNSFilterManager extends ConfigurationAccess  {
 					} catch (IOException eio) {
 						String msg = "ERROR loading filter: " + urlStr;
 						Logger.getLogger().message(msg);
-						Logger.getLogger().logLine(msg);
-						out.close();
-						//throw eio;
+						Logger.getLogger().logLine("bỏ qua "+msg + " - skipping and continuing with next URL");
+						// Do not close 'out' here; it will be closed in the outer finally block.
+						// Proceed with next URL instead of aborting the whole update.
+						continue;
 					}
 
 				}
