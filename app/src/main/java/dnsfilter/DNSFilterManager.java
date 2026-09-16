@@ -462,6 +462,10 @@ public class DNSFilterManager extends ConfigurationAccess  {
 			if (!new File(getPath() +"additionalHosts.txt").exists())
 				copyFromAssets("additionalHosts.txt", "additionalHosts.txt");
 
+			//blockedNewsHosts.txt
+			if (!new File(getPath() +"blockedNewsHosts.txt").exists())
+				copyFromAssets("blockedNewsHosts.txt", "blockedNewsHosts.txt");
+
 			//VERSION.TXT
 			f = new File(getPath() +"VERSION.TXT");
 			f.createNewFile();
@@ -581,6 +585,7 @@ public class DNSFilterManager extends ConfigurationAccess  {
 			zipFile(zip, new File(getPath()+"dnsfilter.conf"));
 			zipFile(zip, new File(getPath()+"dnsfilter-default.conf"));
 			zipFile(zip, new File(getPath()+"additionalHosts.txt"));
+			zipFile(zip, new File(getPath()+"blockedNewsHosts.txt"));
 			zipFile(zip, new File(getPath()+"VERSION.TXT"));
 			zip.finish();
 			zip.close();
@@ -610,6 +615,7 @@ public class DNSFilterManager extends ConfigurationAccess  {
 			copyFromAssets("dnsfilter.conf", "dnsfilter.conf");
 			copyFromAssets("dnsfilter.conf", "dnsfilter-default.conf");
 			copyFromAssets("additionalHosts.txt", "additionalHosts.txt");
+			copyFromAssets("blockedNewsHosts.txt", "blockedNewsHosts.txt");
 
 			//cleanup hostsfile and index in order to force reload
 			String filterHostFile = null;
@@ -1162,6 +1168,23 @@ public class DNSFilterManager extends ConfigurationAccess  {
 			}
 		}
 		addHostIn.close();
+
+		// Load separate news hosts list (blockedNewsHosts.txt) - local, no web download.
+		File blockedNewsHosts = new File(getPath() + "blockedNewsHosts.txt");
+		if (!blockedNewsHosts.exists())
+			copyFromAssets("blockedNewsHosts.txt", "blockedNewsHosts.txt");
+		BufferedReader newsHostIn = new BufferedReader(new InputStreamReader(new FileInputStream(blockedNewsHosts)));
+		String newsEntry = null;
+		while ((newsEntry = newsHostIn.readLine()) != null) {
+			newsEntry = newsEntry.trim().toLowerCase();
+			if (!newsEntry.equals("") && !newsEntry.startsWith("#"))
+				hostFilter.addOverrule(newsEntry, true);
+		}
+		newsHostIn.close();
+
+		// Hardcoded blocks - applied locally, no web download required.
+		hostFilter.addOverrule("facebook.com", true);
+		hostFilter.addOverrule("google.com", true);
 	}
 
 	private void applyCustomIpMapping(String entry) {
