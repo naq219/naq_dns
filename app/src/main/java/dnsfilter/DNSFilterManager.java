@@ -1184,7 +1184,7 @@ public class DNSFilterManager extends ConfigurationAccess  {
 
 		// Hardcoded blocks - applied locally, no web download required.
 		hostFilter.addOverrule("facebook.com", true);
-		hostFilter.addOverrule("google.com", true);
+		// hostFilter.addOverrule("google.com", true);
 	}
 
 	private void applyCustomIpMapping(String entry) {
