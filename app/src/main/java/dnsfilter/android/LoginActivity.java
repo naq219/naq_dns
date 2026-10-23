@@ -24,14 +24,14 @@ public class LoginActivity extends Activity {
     private EditText etInput;
     private Button btnLogin;
     private Button btnShowLog;
-    private Button btnPause30m;
+    private Button btnPause10m;
     private Button btnPause1d;
     private String captchaText;
 
     private static final String PREFS_NAME = "app_prefs";
     private static final String PREF_FIRST_RUN = "first_run";
     private static final String PREF_LOGIN_SUCCESS_COUNT = "login_success_count";
-    private static final String PREF_30M_LAST_DAY = "throttle_30m_last_day"; // yyyymmdd last used day
+    private static final String PREF_PAUSE_LAST_DAY = "throttle_30m_last_day"; // yyyymmdd last used day
     private static final int REQUIRED_SUCCESSFUL_LOGINS = 30;
     int currentSuccessCount =0;
     @Override
@@ -45,13 +45,13 @@ public class LoginActivity extends Activity {
         etInput = findViewById(R.id.etInput);
         btnLogin = findViewById(R.id.btnLogin);
         btnShowLog = findViewById(R.id.btnShowLog);
-        btnPause30m = findViewById(R.id.btnPause30m);
+        btnPause10m = findViewById(R.id.btnPause10m);
         btnPause1d = findViewById(R.id.btnPause1d);
 
-        // Disable 30m button if already used today
+        // Disable pause button if already used today
         SharedPreferences prefsForBtn = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        boolean canUse30m = canUse30mToday(prefsForBtn);
-        //btnPause30m.setEnabled(canUse30m);
+        boolean canUsePause = canUsePauseToday(prefsForBtn);
+        //btnPause10m.setEnabled(canUsePause);
 
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         boolean firstRun = prefs.getBoolean(PREF_FIRST_RUN, true);
@@ -112,32 +112,32 @@ public class LoginActivity extends Activity {
             }
         });
 
-        // Pause for 30 minutes
-        btnPause30m.setOnClickListener(new View.OnClickListener() {
+        // Pause for 10 minutes
+        btnPause10m.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 SharedPreferences sp = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-                if (!canUse30mToday(sp)) {
+                if (!canUsePauseToday(sp)) {
                     long ms = millisUntilTomorrow();
                     long hours = ms / (60L * 60L * 1000L);
                     long minutes = (ms / (60L * 1000L)) % 60L;
-                    String msg = String.format("Bạn đã dùng 30 phút hôm nay. Vui lòng thử lại sau %d giờ %d phút.", hours, minutes);
+                    String msg = String.format("Bạn đã dùng 10 phút hôm nay. Vui lòng thử lại sau %d giờ %d phút.", hours, minutes);
                     Toast.makeText(LoginActivity.this, msg, Toast.LENGTH_LONG).show();
                     return;
                 }
 
-                long duration = 30L * 60L * 1000L;
+                long duration = 10L * 60L * 1000L;
                 // Mark used today
-                sp.edit().putInt(PREF_30M_LAST_DAY, localDayKey()).apply();
+                sp.edit().putInt(PREF_PAUSE_LAST_DAY, localDayKey()).apply();
 
                 // Notify running service via broadcast
                 Intent i = new Intent("pause_for");
                 i.putExtra("duration", duration);
                 sendBroadcast(i);
-                Toast.makeText(LoginActivity.this, "Đã tạm dừng DNS 30 phút", Toast.LENGTH_SHORT).show();
+                Toast.makeText(LoginActivity.this, "Đã tạm dừng DNS 10 phút", Toast.LENGTH_SHORT).show();
 
                 // Update UI state
-                btnPause30m.setEnabled(false);
+                btnPause10m.setEnabled(false);
                 //navigateToDNSProxyActivity();
             }
         });
@@ -190,8 +190,8 @@ public class LoginActivity extends Activity {
         return y * 10000 + m * 100 + d; // yyyymmdd
     }
 
-    private boolean canUse30mToday(SharedPreferences sp) {
-        int last = sp.getInt(PREF_30M_LAST_DAY, -1);
+    private boolean canUsePauseToday(SharedPreferences sp) {
+        int last = sp.getInt(PREF_PAUSE_LAST_DAY, -1);
         return last != localDayKey();
     }
 
